@@ -22,6 +22,14 @@ class CollectRequest(BaseModel):
         description="Include manual and automatic subtitles",
     )
 
+    include_chat_replay: bool = Field(
+        default=False,
+        description=(
+            "Include live chat replay for a finished "
+            "YouTube livestream when available"
+        ),
+    )
+
     flat: bool = Field(
         default=False,
         description=(

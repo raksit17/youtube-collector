@@ -26,35 +26,45 @@ class YoutubeNormalizer:
         *,
         include_formats: bool = False,
         include_subtitles: bool = True,
+        transcript: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         raw_type = raw.get(
             "_type",
             "video",
         )
 
+        # Playlist / Channel-like collection
         if raw_type in {
             "playlist",
             "multi_video",
         }:
-            return self.normalize_playlist(raw)
+            return self.normalize_playlist(
+                raw
+            )
 
+        # Single video
         return normalize_video(
             raw,
             include_formats=include_formats,
             include_subtitles=include_subtitles,
+            transcript=transcript,
         )
 
     def normalize_playlist(
         self,
         raw: dict[str, Any],
     ) -> dict[str, Any]:
-        return normalize_playlist_data(raw)
+        return normalize_playlist_data(
+            raw
+        )
 
     def normalize_channel(
         self,
         raw: dict[str, Any],
     ) -> dict[str, Any]:
-        return normalize_channel_data(raw)
+        return normalize_channel_data(
+            raw
+        )
 
     def normalize_search(
         self,
@@ -69,10 +79,7 @@ class YoutubeNormalizer:
         return {
             "type": "search",
             "source": "youtube",
-
             "query": query,
-
             "count": len(entries),
-
             "entries": entries,
         }

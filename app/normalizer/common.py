@@ -1,6 +1,13 @@
 from typing import Any
 
 
+PREFERRED_SUBTITLE_FORMATS = (
+    "json3",
+    "vtt",
+    "srt",
+)
+
+
 def normalize_channel_data(
     raw: dict[str, Any],
 ) -> dict[str, Any]:
@@ -56,7 +63,7 @@ def normalize_formats(
     return [
         normalize_format(item)
         for item in raw_formats
-        if item
+        if isinstance(item, dict)
     ]
 
 
@@ -79,7 +86,7 @@ def normalize_chapters(
     return [
         normalize_chapter(item)
         for item in raw_chapters
-        if item
+        if isinstance(item, dict)
     ]
 
 
@@ -93,9 +100,47 @@ def normalize_subtitle_item(
     }
 
 
+def select_subtitle_format(
+    items: list[dict[str, Any]],
+) -> dict[str, Any] | None:
+    """
+    Select one preferred subtitle format.
+
+    Priority:
+    json3 -> vtt -> srt
+    """
+
+    for preferred in PREFERRED_SUBTITLE_FORMATS:
+        for item in items:
+            if item.get("ext") == preferred:
+                return normalize_subtitle_item(
+                    item
+                )
+
+    if items:
+        return normalize_subtitle_item(
+            items[0]
+        )
+
+    return None
+
+
 def normalize_subtitle_map(
     raw_subtitles: dict[str, Any] | None,
+    *,
+    languages: list[str] | None = None,
 ) -> dict[str, list[dict[str, Any]]]:
+    """
+    Normalize subtitle map.
+
+    Example language filters:
+        ["en-orig"]
+        ["ja"]
+        ["th"]
+
+    live_chat is ignored.
+    """
+
     if not raw_subtitles:
         return {}
 
@@ -105,14 +150,35 @@ def normalize_subtitle_map(
     ] = {}
 
     for language, items in raw_subtitles.items():
+
+        # live chat replay is not subtitle data
+        if language == "live_chat":
+            continue
+
+        # Optional language filtering
+        if (
+            languages is not None
+            and language not in languages
+        ):
+            continue
+
         if not isinstance(items, list):
             continue
 
-        result[language] = [
-            normalize_subtitle_item(item)
+        valid_items = [
+            item
             for item in items
             if isinstance(item, dict)
         ]
+
+        selected = select_subtitle_format(
+            valid_items
+        )
+
+        if selected:
+            result[language] = [
+                selected
+            ]
 
     return result
 
@@ -127,10 +193,11 @@ def normalize_entry_url(
 
     video_id = raw.get("id")
 
-    # flat yt-dlp บางครั้ง url อาจเป็นแค่ video id
     if (
         isinstance(url, str)
-        and url.startswith(("http://", "https://"))
+        and url.startswith(
+            ("http://", "https://")
+        )
     ):
         return url
 
@@ -154,9 +221,13 @@ def normalize_collection_entry(
 
         "duration": raw.get("duration"),
 
-        "view_count": raw.get("view_count"),
+        "view_count": raw.get(
+            "view_count"
+        ),
 
-        "live_status": raw.get("live_status"),
+        "live_status": raw.get(
+            "live_status"
+        ),
     }
 
 
@@ -173,7 +244,9 @@ def normalize_collection_entries(
             continue
 
         result.append(
-            normalize_collection_entry(item)
+            normalize_collection_entry(
+                item
+            )
         )
 
     return result

@@ -8,12 +8,59 @@ from app.normalizer.common import (
 )
 
 
+def _find_original_caption_languages(
+    automatic_captions: dict[str, Any],
+    video_language: str | None,
+) -> list[str]:
+    """
+    Find original automatic caption language.
+
+    Example:
+        video language = "en"
+        automatic captions contains "en-orig"
+
+        result = ["en-orig"]
+    """
+
+    if not automatic_captions:
+        return []
+
+    if video_language:
+        original_key = f"{video_language}-orig"
+
+        if original_key in automatic_captions:
+            return [original_key]
+
+        if video_language in automatic_captions:
+            return [video_language]
+
+    for language in automatic_captions:
+        if language.endswith("-orig"):
+            return [language]
+
+    return []
+
+
 def normalize_video(
     raw: dict[str, Any],
     *,
     include_formats: bool = False,
     include_subtitles: bool = True,
+    transcript: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+
+    automatic_captions = (
+        raw.get("automatic_captions")
+        or {}
+    )
+
+    original_caption_languages = (
+        _find_original_caption_languages(
+            automatic_captions,
+            raw.get("language"),
+        )
+    )
+
     result: dict[str, Any] = {
         "type": "video",
         "source": "youtube",
@@ -41,16 +88,21 @@ def normalize_video(
         "stats": {
             "views": raw.get("view_count"),
             "likes": raw.get("like_count"),
-            "comments": raw.get("comment_count"),
+            "comments": raw.get(
+                "comment_count"
+            ),
         },
 
         "media": {
             "duration": raw.get("duration"),
+
             "duration_string": raw.get(
                 "duration_string"
             ),
 
-            "thumbnail": raw.get("thumbnail"),
+            "thumbnail": raw.get(
+                "thumbnail"
+            ),
 
             "width": raw.get("width"),
             "height": raw.get("height"),
@@ -58,10 +110,17 @@ def normalize_video(
         },
 
         "live": {
-            "status": raw.get("live_status"),
+            "status": raw.get(
+                "live_status"
+            ),
 
-            "is_live": raw.get("is_live"),
-            "was_live": raw.get("was_live"),
+            "is_live": raw.get(
+                "is_live"
+            ),
+
+            "was_live": raw.get(
+                "was_live"
+            ),
 
             "concurrent_viewers": raw.get(
                 "concurrent_view_count"
@@ -69,18 +128,27 @@ def normalize_video(
         },
 
         "metadata": {
-            "tags": raw.get("tags") or [],
-            "categories": (
-                raw.get("categories") or []
+            "tags": (
+                raw.get("tags")
+                or []
             ),
 
-            "language": raw.get("language"),
+            "categories": (
+                raw.get("categories")
+                or []
+            ),
+
+            "language": raw.get(
+                "language"
+            ),
 
             "availability": raw.get(
                 "availability"
             ),
 
-            "age_limit": raw.get("age_limit"),
+            "age_limit": raw.get(
+                "age_limit"
+            ),
         },
 
         "chapters": normalize_chapters(
@@ -89,21 +157,41 @@ def normalize_video(
     }
 
     if include_subtitles:
-        result["subtitles"] = {
-            "manual": normalize_subtitle_map(
+        manual_subtitles = (
+            normalize_subtitle_map(
                 raw.get("subtitles")
-            ),
+            )
+        )
 
-            "automatic": normalize_subtitle_map(
-                raw.get("automatic_captions")
-            ),
+        if original_caption_languages:
+            automatic_subtitles = (
+                normalize_subtitle_map(
+                    automatic_captions,
+                    languages=(
+                        original_caption_languages
+                    ),
+                )
+            )
+        else:
+            automatic_subtitles = {}
+
+        result["subtitles"] = {
+            "manual": manual_subtitles,
+            "automatic": automatic_subtitles,
+
+            # transcript ที่ Collector
+            # โหลดจาก JSON3 มาแล้ว
+            "transcript": transcript,
         }
+
     else:
         result["subtitles"] = None
 
     if include_formats:
-        result["formats"] = normalize_formats(
-            raw.get("formats")
+        result["formats"] = (
+            normalize_formats(
+                raw.get("formats")
+            )
         )
     else:
         result["formats"] = None

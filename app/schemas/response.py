@@ -222,3 +222,48 @@ class ErrorResponse(BaseModel):
     collector: Literal["yt-dlp"] = "yt-dlp"
 
     error: ErrorDetail
+class TranscriptWordData(BaseModel):
+    start: float
+    text: str
+
+
+class TranscriptSegmentData(BaseModel):
+    start: float
+    end: float
+    duration: float
+    text: str
+
+    words: list[TranscriptWordData] = Field(
+        default_factory=list
+    )
+
+
+class TranscriptData(BaseModel):
+    language: str
+    source: str
+    format: str
+
+    segments: list[
+        TranscriptSegmentData
+    ] = Field(
+        default_factory=list
+    )
+class SubtitleData(BaseModel):
+    manual: dict[
+        str,
+        list[SubtitleFormatData]
+    ] = Field(
+        default_factory=dict
+    )
+
+    automatic: dict[
+        str,
+        list[SubtitleFormatData]
+    ] = Field(
+        default_factory=dict
+    )
+
+    transcript: (
+        TranscriptData
+        | None
+    ) = None

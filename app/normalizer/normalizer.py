@@ -6,9 +6,7 @@ from app.normalizer.channel import (
 from app.normalizer.playlist import (
     normalize_playlist as normalize_playlist_data,
 )
-from app.normalizer.video import (
-    normalize_video,
-)
+from app.normalizer.video import normalize_video
 from app.normalizer.common import (
     normalize_collection_entries,
 )
@@ -27,13 +25,13 @@ class YoutubeNormalizer:
         include_formats: bool = False,
         include_subtitles: bool = True,
         transcript: dict[str, Any] | None = None,
+        chat_replay: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         raw_type = raw.get(
             "_type",
             "video",
         )
 
-        # Playlist / Channel-like collection
         if raw_type in {
             "playlist",
             "multi_video",
@@ -42,12 +40,12 @@ class YoutubeNormalizer:
                 raw
             )
 
-        # Single video
         return normalize_video(
             raw,
             include_formats=include_formats,
             include_subtitles=include_subtitles,
             transcript=transcript,
+            chat_replay=chat_replay,
         )
 
     def normalize_playlist(

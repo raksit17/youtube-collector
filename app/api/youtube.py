@@ -9,6 +9,10 @@ from fastapi.concurrency import (
     run_in_threadpool,
 )
 
+from app.clients.ingestion_client import (
+    IngestionClient,
+    IngestionClientError,
+)
 from app.collector.collector import (
     YoutubeCollector,
 )
@@ -35,6 +39,7 @@ from app.schemas.response import (
 router = APIRouter()
 
 collector = YoutubeCollector()
+ingestion_client = IngestionClient()
 
 
 def build_response(
@@ -50,6 +55,36 @@ def build_response(
         ),
         "data": data,
     }
+
+
+async def build_and_forward_response(
+    data: dict[str, Any],
+) -> dict[str, Any]:
+    """
+    Build the collector envelope, forward it to
+    the downstream ingestion API, then return the
+    same payload to the original caller.
+    """
+
+    payload = build_response(data)
+
+    try:
+        await ingestion_client.send(
+            payload
+        )
+
+    except IngestionClientError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail={
+                "code": (
+                    "INGESTION_FORWARD_ERROR"
+                ),
+                "message": str(exc),
+            },
+        ) from exc
+
+    return payload
 
 
 def handle_extractor_error(
@@ -150,7 +185,9 @@ async def collect(
             flat=request.flat,
         )
 
-        return build_response(data)
+        return await build_and_forward_response(
+            data
+        )
 
     except YoutubeExtractorError as exc:
         handle_extractor_error(exc)
@@ -182,7 +219,9 @@ async def collect_video(
             ),
         )
 
-        return build_response(data)
+        return await build_and_forward_response(
+            data
+        )
 
     except YoutubeExtractorError as exc:
         handle_extractor_error(exc)
@@ -202,7 +241,9 @@ async def collect_channel(
             str(request.url),
         )
 
-        return build_response(data)
+        return await build_and_forward_response(
+            data
+        )
 
     except YoutubeExtractorError as exc:
         handle_extractor_error(exc)
@@ -223,7 +264,9 @@ async def collect_playlist(
             flat=request.flat,
         )
 
-        return build_response(data)
+        return await build_and_forward_response(
+            data
+        )
 
     except YoutubeExtractorError as exc:
         handle_extractor_error(exc)
@@ -256,7 +299,9 @@ async def search(
             limit=limit,
         )
 
-        return build_response(data)
+        return await build_and_forward_response(
+            data
+        )
 
     except YoutubeExtractorError as exc:
         handle_extractor_error(exc)

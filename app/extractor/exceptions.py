@@ -80,3 +80,18 @@ class YoutubeRateLimitError(
             message,
             code="RATE_LIMITED",
         )
+
+
+class YoutubeChatReplayError(
+    YoutubeExtractorError
+):
+    def __init__(
+        self,
+        message: str = (
+            "Failed to extract YouTube live chat replay"
+        ),
+    ):
+        super().__init__(
+            message,
+            code="CHAT_REPLAY_EXTRACTION_ERROR",
+        )

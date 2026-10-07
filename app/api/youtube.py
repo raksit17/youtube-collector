@@ -1,9 +1,17 @@
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Query
-from fastapi.concurrency import run_in_threadpool
+from fastapi import (
+    APIRouter,
+    HTTPException,
+    Query,
+)
+from fastapi.concurrency import (
+    run_in_threadpool,
+)
 
-from app.collector.collector import YoutubeCollector
+from app.collector.collector import (
+    YoutubeCollector,
+)
 from app.collector.types import (
     CollectorEngine,
     CollectorProvider,
@@ -16,9 +24,13 @@ from app.extractor.exceptions import (
     YoutubeRateLimitError,
     YoutubeVideoUnavailableError,
 )
-from app.schemas.request import CollectRequest
-from app.schemas.response import CollectResponse
-from functools import partial
+from app.schemas.request import (
+    CollectRequest,
+)
+from app.schemas.response import (
+    CollectResponse,
+)
+
 
 router = APIRouter()
 
@@ -32,7 +44,10 @@ def build_response(
         "success": True,
         "provider": CollectorProvider.YOUTUBE,
         "collector": CollectorEngine.YTDLP,
-        "type": data.get("type", "video"),
+        "type": data.get(
+            "type",
+            "video",
+        ),
         "data": data,
     }
 
@@ -116,24 +131,22 @@ async def health() -> dict[str, str]:
 async def collect(
     request: CollectRequest,
 ) -> dict[str, Any]:
-    """
-    Automatically collect data from a YouTube URL.
-
-    Supports:
-    - Video
-    - Shorts
-    - Live
-    - Playlist
-    - Channel
-    """
-
     try:
         data = await run_in_threadpool(
             collector.collect,
             str(request.url),
-            include_comments=request.include_comments,
-            include_formats=request.include_formats,
-            include_subtitles=request.include_subtitles,
+            include_comments=(
+                request.include_comments
+            ),
+            include_formats=(
+                request.include_formats
+            ),
+            include_subtitles=(
+                request.include_subtitles
+            ),
+            include_chat_replay=(
+                request.include_chat_replay
+            ),
             flat=request.flat,
         )
 
@@ -141,7 +154,6 @@ async def collect(
 
     except YoutubeExtractorError as exc:
         handle_extractor_error(exc)
-
         raise
 
 
@@ -152,24 +164,28 @@ async def collect(
 async def collect_video(
     request: CollectRequest,
 ) -> dict[str, Any]:
-    """
-    Fully extract one YouTube video.
-    """
-
     try:
         data = await run_in_threadpool(
             collector.collect_video,
             str(request.url),
-            include_comments=request.include_comments,
-            include_formats=request.include_formats,
-            include_subtitles=request.include_subtitles,
+            include_comments=(
+                request.include_comments
+            ),
+            include_formats=(
+                request.include_formats
+            ),
+            include_subtitles=(
+                request.include_subtitles
+            ),
+            include_chat_replay=(
+                request.include_chat_replay
+            ),
         )
 
         return build_response(data)
 
     except YoutubeExtractorError as exc:
         handle_extractor_error(exc)
-
         raise
 
 
@@ -180,13 +196,6 @@ async def collect_video(
 async def collect_channel(
     request: CollectRequest,
 ) -> dict[str, Any]:
-    """
-    Collect a YouTube channel using flat extraction.
-
-    Recommended for channels containing
-    many videos.
-    """
-
     try:
         data = await run_in_threadpool(
             collector.collect_channel,
@@ -197,7 +206,6 @@ async def collect_channel(
 
     except YoutubeExtractorError as exc:
         handle_extractor_error(exc)
-
         raise
 
 
@@ -208,13 +216,6 @@ async def collect_channel(
 async def collect_playlist(
     request: CollectRequest,
 ) -> dict[str, Any]:
-    """
-    Collect playlist metadata and entries.
-
-    request.flat controls whether playlist
-    entries are fully extracted.
-    """
-
     try:
         data = await run_in_threadpool(
             collector.collect_playlist,
@@ -226,7 +227,6 @@ async def collect_playlist(
 
     except YoutubeExtractorError as exc:
         handle_extractor_error(exc)
-
         raise
 
 
@@ -244,16 +244,11 @@ async def search(
         default=20,
         ge=1,
         le=100,
-        description="Maximum number of results",
+        description=(
+            "Maximum number of results"
+        ),
     ),
 ) -> dict[str, Any]:
-    """
-    Search YouTube using yt-dlp.
-
-    Example:
-        /search?query=hololive&limit=20
-    """
-
     try:
         data = await run_in_threadpool(
             collector.search,
@@ -265,5 +260,4 @@ async def search(
 
     except YoutubeExtractorError as exc:
         handle_extractor_error(exc)
-
         raise

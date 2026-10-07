@@ -1,7 +1,12 @@
+
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
+
+# ==========================================
+# Channel
+# ==========================================
 
 class ChannelData(BaseModel):
     external_id: str | None = None
@@ -10,17 +15,29 @@ class ChannelData(BaseModel):
     followers: int | None = None
 
 
+# ==========================================
+# Published
+# ==========================================
+
 class PublishedData(BaseModel):
     upload_date: str | None = None
     timestamp: int | float | None = None
     release_timestamp: int | float | None = None
 
 
+# ==========================================
+# Statistics
+# ==========================================
+
 class StatsData(BaseModel):
     views: int | None = None
     likes: int | None = None
     comments: int | None = None
 
+
+# ==========================================
+# Media
+# ==========================================
 
 class MediaData(BaseModel):
     duration: float | None = None
@@ -33,6 +50,10 @@ class MediaData(BaseModel):
     fps: float | None = None
 
 
+# ==========================================
+# Live
+# ==========================================
+
 class LiveData(BaseModel):
     status: str | None = None
 
@@ -41,6 +62,10 @@ class LiveData(BaseModel):
 
     concurrent_viewers: int | None = None
 
+
+# ==========================================
+# Metadata
+# ==========================================
 
 class MetadataData(BaseModel):
     tags: list[str] = Field(default_factory=list)
@@ -52,6 +77,10 @@ class MetadataData(BaseModel):
     age_limit: int | None = None
 
 
+# ==========================================
+# Chapters
+# ==========================================
+
 class ChapterData(BaseModel):
     title: str | None = None
 
@@ -59,9 +88,12 @@ class ChapterData(BaseModel):
     end_time: float | None = None
 
 
+# ==========================================
+# Formats
+# ==========================================
+
 class FormatData(BaseModel):
     id: str | None = None
-
     ext: str | None = None
 
     width: int | None = None
@@ -76,26 +108,82 @@ class FormatData(BaseModel):
     abr: float | None = None
 
     filesize: int | None = None
-
     protocol: str | None = None
 
+
+# ==========================================
+# Subtitle Formats
+# ==========================================
 
 class SubtitleFormatData(BaseModel):
     ext: str | None = None
     url: str | None = None
-
     name: str | None = None
 
 
+# ==========================================
+# Transcript Words
+# ==========================================
+
+class TranscriptWordData(BaseModel):
+    start: float
+    text: str
+
+
+# ==========================================
+# Transcript Segments
+# ==========================================
+
+class TranscriptSegmentData(BaseModel):
+    start: float
+    end: float
+    duration: float
+    text: str
+
+    words: list[TranscriptWordData] = Field(
+        default_factory=list
+    )
+
+
+# ==========================================
+# Transcript
+# ==========================================
+
+class TranscriptData(BaseModel):
+    language: str
+    source: str
+    format: str
+
+    segments: list[TranscriptSegmentData] = Field(
+        default_factory=list
+    )
+
+
+# ==========================================
+# Subtitles
+# ==========================================
+
 class SubtitleData(BaseModel):
-    manual: dict[str, list[SubtitleFormatData]] = Field(
+    manual: dict[
+        str,
+        list[SubtitleFormatData]
+    ] = Field(
         default_factory=dict
     )
 
-    automatic: dict[str, list[SubtitleFormatData]] = Field(
+    automatic: dict[
+        str,
+        list[SubtitleFormatData]
+    ] = Field(
         default_factory=dict
     )
 
+    transcript: TranscriptData | None = None
+
+
+# ==========================================
+# Video
+# ==========================================
 
 class VideoData(BaseModel):
     type: Literal["video"] = "video"
@@ -104,7 +192,6 @@ class VideoData(BaseModel):
     external_id: str
 
     url: str | None = None
-
     title: str | None = None
     description: str | None = None
 
@@ -139,18 +226,25 @@ class VideoData(BaseModel):
     subtitles: SubtitleData | None = None
 
     formats: list[FormatData] | None = None
+
+
+# ==========================================
+# Playlist Entry
+# ==========================================
+
 class PlaylistEntryData(BaseModel):
     external_id: str | None = None
-
     title: str | None = None
     url: str | None = None
 
     duration: float | None = None
-
     view_count: int | None = None
-
     live_status: str | None = None
 
+
+# ==========================================
+# Playlist
+# ==========================================
 
 class PlaylistData(BaseModel):
     type: Literal["playlist"] = "playlist"
@@ -160,7 +254,6 @@ class PlaylistData(BaseModel):
 
     title: str | None = None
     description: str | None = None
-
     url: str | None = None
 
     channel: ChannelData = Field(
@@ -172,6 +265,12 @@ class PlaylistData(BaseModel):
     entries: list[PlaylistEntryData] = Field(
         default_factory=list
     )
+
+
+# ==========================================
+# Channel Response
+# ==========================================
+
 class ChannelResponseData(BaseModel):
     type: Literal["channel"] = "channel"
     source: Literal["youtube"] = "youtube"
@@ -180,7 +279,6 @@ class ChannelResponseData(BaseModel):
 
     name: str | None = None
     description: str | None = None
-
     url: str | None = None
 
     followers: int | None = None
@@ -188,12 +286,39 @@ class ChannelResponseData(BaseModel):
     entries: list[PlaylistEntryData] = Field(
         default_factory=list
     )
+
+
+# ==========================================
+# Search Response
+# ==========================================
+
+class SearchData(BaseModel):
+    type: Literal["search"] = "search"
+    source: Literal["youtube"] = "youtube"
+
+    query: str
+    count: int = 0
+
+    entries: list[PlaylistEntryData] = Field(
+        default_factory=list
+    )
+
+
+# ==========================================
+# Collector Data
+# ==========================================
+
 CollectorData = (
     VideoData
     | PlaylistData
     | ChannelResponseData
+    | SearchData
 )
 
+
+# ==========================================
+# Success Response
+# ==========================================
 
 class CollectResponse(BaseModel):
     success: bool = True
@@ -205,13 +330,19 @@ class CollectResponse(BaseModel):
         "video",
         "playlist",
         "channel",
+        "search",
     ]
 
     data: CollectorData
+
+
+# ==========================================
+# Error Response
+# ==========================================
+
 class ErrorDetail(BaseModel):
     code: str
     message: str
-
     details: Any | None = None
 
 
@@ -222,48 +353,3 @@ class ErrorResponse(BaseModel):
     collector: Literal["yt-dlp"] = "yt-dlp"
 
     error: ErrorDetail
-class TranscriptWordData(BaseModel):
-    start: float
-    text: str
-
-
-class TranscriptSegmentData(BaseModel):
-    start: float
-    end: float
-    duration: float
-    text: str
-
-    words: list[TranscriptWordData] = Field(
-        default_factory=list
-    )
-
-
-class TranscriptData(BaseModel):
-    language: str
-    source: str
-    format: str
-
-    segments: list[
-        TranscriptSegmentData
-    ] = Field(
-        default_factory=list
-    )
-class SubtitleData(BaseModel):
-    manual: dict[
-        str,
-        list[SubtitleFormatData]
-    ] = Field(
-        default_factory=dict
-    )
-
-    automatic: dict[
-        str,
-        list[SubtitleFormatData]
-    ] = Field(
-        default_factory=dict
-    )
-
-    transcript: (
-        TranscriptData
-        | None
-    ) = None

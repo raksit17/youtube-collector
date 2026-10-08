@@ -20,6 +20,10 @@ from app.collector.types import (
     CollectorEngine,
     CollectorProvider,
 )
+from app.downloader.video_downloader import (
+    VideoDownloadError,
+    YoutubeVideoDownloader,
+)
 from app.extractor.exceptions import (
     InvalidYoutubeUrlError,
     YoutubeExtractorError,
@@ -39,6 +43,7 @@ from app.schemas.response import (
 router = APIRouter()
 
 collector = YoutubeCollector()
+video_downloader = YoutubeVideoDownloader()
 ingestion_client = IngestionClient()
 
 
@@ -218,6 +223,25 @@ async def collect_video(
                 request.include_chat_replay
             ),
         )
+
+        try:
+            await run_in_threadpool(
+                video_downloader.ensure_downloaded,
+                url=str(request.url),
+                external_id=data.get(
+                    "external_id"
+                ),
+            )
+        except VideoDownloadError as exc:
+            raise HTTPException(
+                status_code=502,
+                detail={
+                    "code": (
+                        "VIDEO_DOWNLOAD_ERROR"
+                    ),
+                    "message": str(exc),
+                },
+            ) from exc
 
         return await build_and_forward_response(
             data
